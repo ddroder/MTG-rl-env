@@ -1,0 +1,22 @@
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+
+# outputs / logs
+*.out
+*.log
+*.pid
+runs/
+replays/
+
+# build artifacts
+build/
+
+# OS
+.DS_Store
+
+# local env
+.env
