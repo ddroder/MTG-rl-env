@@ -69,7 +69,8 @@ ACTIVATION_REWARD = 0.0
 PLAY_LAND_REWARD = 0.0
 
 # Tempo / anti-stall
-STEP_TIME_PENALTY = 0.01
+STEP_TIME_PENALTY = 0.02
+PASS_NOOP_PENALTY = 0.02  # penalty when we choose PASS despite other options
 
 # Combat conversion
 ATTACK_POWER_REWARD = 0.0        # per estimated attacking power when we choose an ATTACK_* action (non-NONE)
@@ -562,6 +563,15 @@ class ForgeHttpEnv(gym.Env):
         reward = 0.0  # override server shaping; reward computed below
 
         act_taken = str(s.get("action_taken") or "")
+
+        # Penalize PASS/no-op if other actions exist (anti-stall / encourage progress)
+        try:
+            if act_taken == "PASS":
+                acts0 = self._get_actions()
+                if any(a != "PASS" for a in (acts0 or [])[:MAX_ACTIONS]):
+                    reward -= PASS_NOOP_PENALTY
+        except Exception:
+            pass
         if act_taken.startswith("CAST_COMMANDER"):
             self._ep_commander_casts += 1.0
             reward += CAST_COMMANDER_REWARD
