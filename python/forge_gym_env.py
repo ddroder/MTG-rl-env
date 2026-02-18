@@ -60,7 +60,7 @@ BF_N = 12
 
 # Reward shaping knobs
 INVALID_ACTION_PENALTY = -0.1
-DMG_TO_OPP_REWARD = 1.0       # + per life point removed from opponent
+DMG_TO_OPP_REWARD = 2.0       # + per life point removed from opponent
 DMG_TO_SELF_PENALTY = 1.0     # - per life point lost
 
 CAST_SPELL_REWARD = 0.0
@@ -71,6 +71,7 @@ PLAY_LAND_REWARD = 0.0
 # Tempo / anti-stall
 STEP_TIME_PENALTY = 0.02
 PASS_NOOP_PENALTY = 0.02  # penalty when we choose PASS despite other options
+NO_PROGRESS_PENALTY = 0.02  # penalty if no life change and no creature-count change occurred
 
 # Combat conversion
 ATTACK_POWER_REWARD = 0.0        # per estimated attacking power when we choose an ATTACK_* action (non-NONE)
@@ -629,6 +630,14 @@ class ForgeHttpEnv(gym.Env):
 
         reward -= CREATURE_LOSS_PENALTY * float(our_lost)
         reward += CREATURE_KILL_REWARD * float(opp_lost)
+
+        # Penalize "no progress" steps: no life delta and no creature-count delta.
+        # This helps prevent stalling even when the agent isn't literally choosing PASS.
+        try:
+            if int(dmg_to_opp) == 0 and int(dmg_to_self) == 0 and int(our_lost) == 0 and int(opp_lost) == 0:
+                reward -= NO_PROGRESS_PENALTY
+        except Exception:
+            pass
 
         # small dense shaping for board advantage (kept tiny to avoid reward hacking)
         adv = max(-BOARD_ADV_CLIP, min(BOARD_ADV_CLIP, p1_creat - p2_creat))
