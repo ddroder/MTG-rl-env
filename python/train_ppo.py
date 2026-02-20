@@ -85,6 +85,7 @@ class ForgeExtraEvalMetricsCallback(BaseCallback):
 
         wins = 0
         invalids = 0
+        timeouts = 0
         total_steps = 0
         lengths = []
         dmg_opp_eps = []
@@ -143,6 +144,7 @@ class ForgeExtraEvalMetricsCallback(BaseCallback):
 
             # If we hit the cap, treat it as a truncated eval episode
             if not done and ep_len >= max_steps_per_episode:
+                timeouts += 1
                 done = True
 
             # Save replay artifacts (eval only)
@@ -190,11 +192,13 @@ class ForgeExtraEvalMetricsCallback(BaseCallback):
 
         win_rate = wins / max(1, self.n_eval_episodes)
         invalid_rate = invalids / max(1, total_steps)
+        timeout_rate = timeouts / max(1, self.n_eval_episodes)
         mean_len = sum(lengths) / max(1, len(lengths))
 
         # Write to TB
         self.logger.record("eval/win_rate", float(win_rate))
         self.logger.record("eval/invalid_action_rate", float(invalid_rate))
+        self.logger.record("eval/timeout_rate", float(timeout_rate))
         self.logger.record("eval/mean_ep_length_det", float(mean_len))
         self.logger.record("eval/ep_dmg_to_opp", float(sum(dmg_opp_eps) / max(1, len(dmg_opp_eps))))
         self.logger.record("eval/ep_dmg_to_self", float(sum(dmg_self_eps) / max(1, len(dmg_self_eps))))

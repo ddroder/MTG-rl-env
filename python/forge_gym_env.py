@@ -60,7 +60,7 @@ BF_N = 12
 
 # Reward shaping knobs
 INVALID_ACTION_PENALTY = -0.1
-DMG_TO_OPP_REWARD = 2.0       # + per life point removed from opponent
+DMG_TO_OPP_REWARD = 3.0       # + per life point removed from opponent
 DMG_TO_SELF_PENALTY = 1.0     # - per life point lost
 
 CAST_SPELL_REWARD = 0.0
@@ -95,6 +95,7 @@ BOARD_ADV_CLIP = 10
 
 MAX_TURN = 25                      # truncate very long games to increase terminal feedback density
 MAX_EP_STEPS = 400                 # hard cap on decision steps (prevents degenerate non-turn-advancing loops)
+TRUNCATION_PENALTY = 50.0           # penalty when an episode times out / truncates without a winner
 TERMINAL_WIN_BONUS = 100.0
 TERMINAL_LOSS_PENALTY = 100.0
 
@@ -697,6 +698,7 @@ class ForgeHttpEnv(gym.Env):
                 reward += TERMINAL_WIN_BONUS
             elif isinstance(w, str) and w:
                 reward -= TERMINAL_LOSS_PENALTY
+
         # Truncate very long episodes to improve learning signal density
         try:
             if int(s.get("turn") or 0) >= MAX_TURN:
@@ -710,6 +712,10 @@ class ForgeHttpEnv(gym.Env):
                 truncated = True
         except Exception:
             pass
+
+        # Penalize timeouts/truncations without a winner: otherwise the agent can learn to stall to avoid losses.
+        if truncated and not terminated:
+            reward -= TRUNCATION_PENALTY
 
         next_actions = self._get_actions()
         self._ep_steps += 1.0
