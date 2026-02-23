@@ -84,6 +84,7 @@ class ForgeExtraEvalMetricsCallback(BaseCallback):
         env = ActionMasker(Monitor(ForgeHttpEnv(base_url=self.base_url)), mask_fn)
 
         wins = 0
+        losses = 0
         invalids = 0
         timeouts = 0
         total_steps = 0
@@ -142,9 +143,11 @@ class ForgeExtraEvalMetricsCallback(BaseCallback):
                         "n_actions": len(info.get("actions") or []),
                     })
 
-            # If we hit the cap, treat it as a truncated eval episode
+            # If we hit the cap, treat it as a truncated eval episode.
+            # Count timeouts as losses for evaluation purposes.
             if not done and ep_len >= max_steps_per_episode:
                 timeouts += 1
+                losses += 1
                 done = True
 
             # Save replay artifacts (eval only)
@@ -189,14 +192,19 @@ class ForgeExtraEvalMetricsCallback(BaseCallback):
             winner = info.get("winner")
             if isinstance(winner, str) and "External" in winner:
                 wins += 1
+            elif winner is not None:
+                # Any explicit non-External winner counts as a loss.
+                losses += 1
 
         win_rate = wins / max(1, self.n_eval_episodes)
+        loss_rate = losses / max(1, self.n_eval_episodes)
         invalid_rate = invalids / max(1, total_steps)
         timeout_rate = timeouts / max(1, self.n_eval_episodes)
         mean_len = sum(lengths) / max(1, len(lengths))
 
         # Write to TB
         self.logger.record("eval/win_rate", float(win_rate))
+        self.logger.record("eval/loss_rate", float(loss_rate))
         self.logger.record("eval/invalid_action_rate", float(invalid_rate))
         self.logger.record("eval/timeout_rate", float(timeout_rate))
         self.logger.record("eval/mean_ep_length_det", float(mean_len))
