@@ -34,7 +34,12 @@ def main() -> int:
     forgejar = "/home/ddroder/users/dan/forge_env/forge_dist/forge-gui-desktop-2.0.09-jar-with-dependencies.jar"
     jre = "/home/ddroder/users/dan/forge_env/jre17/bin/java"
 
-    procs: list[tuple[int, subprocess.Popen]] = []
+    procs: list[tuple[int, subprocess.Popen, str]] = []
+
+    # write per-port logs so we can debug server exits
+    log_dir = "/home/ddroder/users/dan/forge_env/rl_v0/python/logs"
+    import os
+    os.makedirs(log_dir, exist_ok=True)
 
     for i in range(n):
         port = base + i
@@ -48,12 +53,14 @@ def main() -> int:
             f"{jar}:{forgejar}",
             "rl.ForgeEnvServer",
         ]
-        p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        procs.append((port, p))
+        log_path = f"{log_dir}/forge_env_server_{port}.log"
+        lf = open(log_path, "ab", buffering=0)
+        p = subprocess.Popen(cmd, stdout=lf, stderr=lf)
+        procs.append((port, p, log_path))
 
     # wait for readiness
     t0 = time.time()
-    for port, p in procs:
+    for port, p, log_path in procs:
         url = f"http://127.0.0.1:{port}/health"
         while time.time() - t0 < 60:
             try:
@@ -66,8 +73,8 @@ def main() -> int:
         else:
             raise RuntimeError(f"env on port {port} did not become healthy")
 
-    for port, p in procs:
-        print(f"port={port} pid={p.pid}")
+    for port, p, log_path in procs:
+        print(f"port={port} pid={p.pid} log={log_path}")
 
     return 0
 
