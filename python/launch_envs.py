@@ -25,6 +25,8 @@ def main() -> int:
     ap.add_argument("--n", type=int, default=4)
     ap.add_argument("--base-port", type=int, default=8799)
     ap.add_argument("--xmx", type=str, default="6G")
+    ap.add_argument("--ai-timeout-secs", type=int, default=60)
+    ap.add_argument("--ai-can-use-timeout", type=int, default=1, help="1=true (default), 0=false")
     args = ap.parse_args()
 
     n = max(1, args.n)
@@ -49,6 +51,8 @@ def main() -> int:
             "-Djava.awt.headless=true",
             "-Dforge.assetsDir=/home/ddroder/users/dan/forge_env/forge_dist/",
             f"-Dforge.port={port}",
+            f"-Dforge.aiTimeoutSeconds={int(args.ai_timeout_secs)}",
+            f"-Dforge.aiCanUseTimeout={'true' if int(args.ai_can_use_timeout) != 0 else 'false'}",
             "-cp",
             f"{jar}:{forgejar}",
             "rl.ForgeEnvServer",

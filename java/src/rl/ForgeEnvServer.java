@@ -1154,6 +1154,22 @@ public class ForgeEnvServer {
                 currentMatch = m;
 
                 Game g = m.createGame();
+                // Increase Forge opponent AI timeout (seconds) to reduce java.util.concurrent.TimeoutException.
+                // This is still bounded on purpose: unlimited time can hang training forever if AI gets stuck.
+                try {
+                    String v = System.getProperty("forge.aiTimeoutSeconds");
+                    if (v == null || v.isBlank()) v = System.getenv("FORGE_AI_TIMEOUT_SECONDS");
+                    if (v != null && !v.isBlank()) {
+                        int secs = Integer.parseInt(v.trim());
+                        if (secs > 0) g.AI_TIMEOUT = secs;
+                    }
+                    String c = System.getProperty("forge.aiCanUseTimeout");
+                    if (c == null || c.isBlank()) c = System.getenv("FORGE_AI_CAN_USE_TIMEOUT");
+                    if (c != null && !c.isBlank()) {
+                        g.AI_CAN_USE_TIMEOUT = Boolean.parseBoolean(c.trim());
+                    }
+                } catch (Throwable ignored) {}
+
                 currentGame = g;
 
                 // swap controller for p1
